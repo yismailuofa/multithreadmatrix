@@ -3,27 +3,28 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
-#include "lab1_IO.h"
 
-int threadnum;
+int threadnum, n;
+
 int **A;
 int **B;
 int **result;
-int n;
 
 void *threadfunc(void *argp)
 {
     int rank = (int)argp;
     int x = floor(rank / sqrt(threadnum));
-    int y = rank % (int)(sqrt(threadnum) * sqrt(threadnum));
-    int rowUpperBound = (n / sqrt(threadnum)) * x;
-    int rowLowerBound = ((n / sqrt(threadnum)) * (x + 1)) - 1;
-    int collumUpperBound = (n / sqrt(threadnum)) * y;
-    int collumLowerBound = ((n / sqrt(threadnum)) * (y + 1)) - 1;
+    int y = rank % (int)(sqrt(threadnum));
+    int rowLowerBound = (n / sqrt(threadnum)) * x;
+    int rowUpperBound = ((n / sqrt(threadnum)) * (x + 1)) - 1;
+    int colLowerBound = (n / sqrt(threadnum)) * y;
+    int colUpperBound = ((n / sqrt(threadnum)) * (y + 1)) - 1;
 
-    for (int i = rowLowerBound; i < rowUpperBound; i++)
+    printf("Thread %d: rowLowerBound: %d, rowUpperBound: %d, colLowerBound: %d, colUpperBound: %d\n", rank, rowLowerBound, rowUpperBound, colLowerBound, colUpperBound);
+
+    for (int i = rowLowerBound; i <= rowUpperBound; i++)
     {
-        for (int j = collumLowerBound; j < collumUpperBound; j++)
+        for (int j = colLowerBound; j <= colUpperBound; j++)
         {
             result[i][j] = 0;
 
@@ -33,13 +34,12 @@ void *threadfunc(void *argp)
             }
         }
     }
+
+    return NULL;
 }
 
 int main(int argc, char *argv[])
 {
-
-    threadnum = atoi(argv[1]);
-
     // check number of argument, valid thread number, and if thread number is a square number
     if (argc != 2)
     {
@@ -47,21 +47,23 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    threadnum = atoi(argv[1]);
+
     if (threadnum < 0)
     {
-        printf("Incorrect Thread number: Please input thread number that is greater than 0 and is a square number\n");
+        printf("Incorrect Thread number: Please input thread number that is greater than 0.\n");
         return 1;
     }
 
     if (sqrt(threadnum) != floor(sqrt(threadnum)))
     {
-        printf("Incorrect Thread number: Please input thread number that is a square number\n");
+        printf("Incorrect Thread number: Please input thread number that is a square number.\n");
         return 1;
     }
 
     Lab1_loadinput(&A, &B, &n);
 
-    // check if n^2 is divisble bby threadsnum
+    // check if n^2 is divisble by threadsnum
     if (((n * n) % threadnum) != 0)
     {
         int j = n * n;
@@ -90,17 +92,32 @@ int main(int argc, char *argv[])
         pthread_join(workers[i], NULL);
     }
 
+    // TODO actually time this
     Lab1_saveoutput(result, &n, 4.99);
 
-    // for (int i = 0; i < n; i++) {
-    //     for (int j = 0; j < n; j++) {
+    // Free memory
+    for (int i = 0; i < n; i++)
+    {
+        free(A[i]);
+        free(B[i]);
+        free(result[i]);
+    }
+    free(A);
+    free(B);
+    free(result);
+
+    // Serial Version: TODO compare with parallel version
+    // for (int i = 0; i < n; i++)
+    // {
+    //     for (int j = 0; j < n; j++)
+    //     {
     //         result[i][j] = 0;
 
-    //         for (int k = 0; k < n; k++) {
+    //         for (int k = 0; k < n; k++)
+    //         {
     //             result[i][j] += A[i][k] * B[k][j];
     //         }
     //         printf("%d\t", result[i][j]);
-
     //     }
     //     printf("\n");
     // }
