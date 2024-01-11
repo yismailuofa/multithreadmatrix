@@ -1,6 +1,7 @@
 #include "lab1_IO.h"
 #include <math.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <pthread.h>
 
@@ -12,15 +13,13 @@ int **result;
 
 void *threadfunc(void *argp)
 {
-    int rank = (int)argp;
+    intptr_t rank = (intptr_t)argp;
     int x = floor(rank / sqrt(threadnum));
     int y = rank % (int)(sqrt(threadnum));
     int rowLowerBound = (n / sqrt(threadnum)) * x;
     int rowUpperBound = ((n / sqrt(threadnum)) * (x + 1)) - 1;
     int colLowerBound = (n / sqrt(threadnum)) * y;
     int colUpperBound = ((n / sqrt(threadnum)) * (y + 1)) - 1;
-
-    printf("Thread %d: rowLowerBound: %d, rowUpperBound: %d, colLowerBound: %d, colUpperBound: %d\n", rank, rowLowerBound, rowUpperBound, colLowerBound, colUpperBound);
 
     for (int i = rowLowerBound; i <= rowUpperBound; i++)
     {
@@ -81,7 +80,7 @@ int main(int argc, char *argv[])
 
     for (int i = 0; i < threadnum; i++)
     {
-        if (pthread_create(&workers[i], NULL, threadfunc, (void *)i) < 0)
+        if (pthread_create(&workers[i], NULL, threadfunc, (void *)(intptr_t)i) < 0)
         {
             perror("Thread Create failed");
         }
