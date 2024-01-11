@@ -7,11 +7,7 @@
 #include <pthread.h>
 
 int threadnum, n;
-
-int **A;
-int **B;
-int **result;
-int **serResult;
+int **A, **B, **result, **serResult;
 
 void *threadfunc(void *argp)
 {
@@ -56,35 +52,46 @@ void serialMatrixMultiply()
     }
 }
 
+void cleanup()
+{
+    for (int i = 0; i < n; i++)
+    {
+        free(A[i]);
+        free(B[i]);
+        free(result[i]);
+        free(serResult[i]);
+    }
+
+    free(A);
+    free(B);
+    free(result);
+    free(serResult);
+}
+
 int main(int argc, char *argv[])
 {
     // check number of argument, valid thread number, and if thread number is a square number
     if (argc != 2)
     {
-        printf("Incorrect Arguments: Usage ./main <number of threads>\n");
+        fprintf(stderr, "Usage: %s <number of threads>\n", argv[0]);
         return 1;
     }
 
     threadnum = atoi(argv[1]);
 
-    if (threadnum < 0)
+    if (threadnum <= 0 || sqrt(threadnum) != floor(sqrt(threadnum)))
     {
-        printf("Incorrect Thread number: Please input thread number that is greater than 0.\n");
-        return 1;
-    }
-    if (sqrt(threadnum) != floor(sqrt(threadnum)))
-    {
-        printf("Incorrect Thread number: Please input thread number that is a square number.\n");
+        fprintf(stderr, "Invalid thread number. Please input a positive square number.\n");
         return 1;
     }
 
+    // Load input matrices
     Lab1_loadinput(&A, &B, &n);
 
     // check if n^2 is divisble by threadsnum
     if (((n * n) % threadnum) != 0)
     {
-        int j = n * n;
-        printf("Incorrect Thread number: Please input thread number that is %d is divisible by\n", j);
+        fprintf(stderr, "Invalid thread number. Please input a number that divides evenly into n^2.\n");
         return 1;
     }
 
@@ -96,15 +103,17 @@ int main(int argc, char *argv[])
         serResult[i] = malloc(n * sizeof(int));
     }
 
+    // Parallel matrix multiplication
     double start, end;
-
     GET_TIME(start);
+
     pthread_t workers[threadnum];
     for (int i = 0; i < threadnum; i++)
     {
         if (pthread_create(&workers[i], NULL, threadfunc, (void *)(intptr_t)i) < 0)
         {
             perror("Thread Create failed");
+            cleanup();
             return 1;
         }
     }
@@ -113,11 +122,14 @@ int main(int argc, char *argv[])
     {
         pthread_join(workers[i], NULL);
     }
+
     GET_TIME(end);
 
+    // Save output and display timings
     Lab1_saveoutput(result, &n, end - start);
     printf("Parallel Time: %f\n", end - start);
 
+    // Serial matrix multiplication
     GET_TIME(start);
     serialMatrixMultiply();
     GET_TIME(end);
@@ -139,17 +151,7 @@ int main(int argc, char *argv[])
     printf("Parallel and serial results match\n");
 
     // Free memory
-    for (int i = 0; i < n; i++)
-    {
-        free(A[i]);
-        free(B[i]);
-        free(result[i]);
-        free(serResult[i]);
-    }
-    free(A);
-    free(B);
-    free(result);
-    free(serResult);
+    cleanup();
 
     return 0;
 }
