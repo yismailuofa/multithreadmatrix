@@ -1,4 +1,5 @@
 #include "lab1_IO.h"
+#include "timer.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -10,6 +11,7 @@ int threadnum, n;
 int **A;
 int **B;
 int **result;
+int **serResult;
 
 void *threadfunc(void *argp)
 {
@@ -37,6 +39,23 @@ void *threadfunc(void *argp)
     return NULL;
 }
 
+void serialMatrixMultiply()
+{
+    for (int i = 0; i < n; i++)
+    {
+        for (int j = 0; j < n; j++)
+        {
+
+            serResult[i][j] = 0;
+
+            for (int k = 0; k < n; k++)
+            {
+                serResult[i][j] += A[i][k] * B[k][j];
+            }
+        }
+    }
+}
+
 int main(int argc, char *argv[])
 {
     // check number of argument, valid thread number, and if thread number is a square number
@@ -53,7 +72,6 @@ int main(int argc, char *argv[])
         printf("Incorrect Thread number: Please input thread number that is greater than 0.\n");
         return 1;
     }
-
     if (sqrt(threadnum) != floor(sqrt(threadnum)))
     {
         printf("Incorrect Thread number: Please input thread number that is a square number.\n");
@@ -71,18 +89,23 @@ int main(int argc, char *argv[])
     }
 
     result = malloc(n * sizeof(int *));
+    serResult = malloc(n * sizeof(int *));
     for (int i = 0; i < n; i++)
     {
         result[i] = malloc(n * sizeof(int));
+        serResult[i] = malloc(n * sizeof(int));
     }
 
-    pthread_t workers[threadnum];
+    double start, end;
 
+    GET_TIME(start);
+    pthread_t workers[threadnum];
     for (int i = 0; i < threadnum; i++)
     {
         if (pthread_create(&workers[i], NULL, threadfunc, (void *)(intptr_t)i) < 0)
         {
             perror("Thread Create failed");
+            return 1;
         }
     }
 
@@ -90,9 +113,30 @@ int main(int argc, char *argv[])
     {
         pthread_join(workers[i], NULL);
     }
+    GET_TIME(end);
 
-    // TODO actually time this
-    Lab1_saveoutput(result, &n, 4.99);
+    Lab1_saveoutput(result, &n, end - start);
+    printf("Parallel Time: %f\n", end - start);
+
+    GET_TIME(start);
+    serialMatrixMultiply();
+    GET_TIME(end);
+
+    printf("Serial Time: %f\n", end - start);
+
+    // Compare results
+    for (int i = 0; i < n; i++)
+    {
+        for (int j = 0; j < n; ++j)
+        {
+            if (result[i][j] != serResult[i][j])
+            {
+                printf("Error: Result mismatch at row %d column %d\n, %d != %d", i, j, result[i][j], serResult[i][j]);
+                return 1;
+            }
+        }
+    }
+    printf("Parallel and serial results match\n");
 
     // Free memory
     for (int i = 0; i < n; i++)
@@ -100,26 +144,12 @@ int main(int argc, char *argv[])
         free(A[i]);
         free(B[i]);
         free(result[i]);
+        free(serResult[i]);
     }
     free(A);
     free(B);
     free(result);
-
-    // Serial Version: TODO compare with parallel version
-    // for (int i = 0; i < n; i++)
-    // {
-    //     for (int j = 0; j < n; j++)
-    //     {
-    //         result[i][j] = 0;
-
-    //         for (int k = 0; k < n; k++)
-    //         {
-    //             result[i][j] += A[i][k] * B[k][j];
-    //         }
-    //         printf("%d\t", result[i][j]);
-    //     }
-    //     printf("\n");
-    // }
+    free(serResult);
 
     return 0;
 }
