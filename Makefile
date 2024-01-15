@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS=-g -Wall
-DEPS=lab1_IO.h
+DEPS=lab1_IO.h timer.h
 LIBS=-lm -std=c99 -lpthread
 
 %.o: %.c $(DEPS)
