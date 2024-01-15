@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-g -Wall
+CFLAGS=-g -Wall -std=c99 -lm
 DEPS=lab1_IO.h
 
 %.o: %.c $(DEPS)
