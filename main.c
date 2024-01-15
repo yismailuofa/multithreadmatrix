@@ -107,8 +107,10 @@ int main(int argc, char *argv[])
     double start, end;
     GET_TIME(start);
 
-    pthread_t workers[threadnum];
-    for (int i = 0; i < threadnum; i++)
+    pthread_t* workers;
+    workers = malloc(threadnum * sizeof(pthread_t));
+    
+    for (long i = 0; i < threadnum; i++)
     {
         if (pthread_create(&workers[i], NULL, threadfunc, (void *)(intptr_t)i) < 0)
         {
@@ -118,7 +120,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    for (int i = 0; i < threadnum; i++)
+    for (long i = 0; i < threadnum; i++)
     {
         pthread_join(workers[i], NULL);
     }
